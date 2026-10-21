@@ -1,102 +1,11 @@
 <!DOCTYPE html>
-<html lang="es" class="h-full bg-slate-900">
+<html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Fichas de Estudio</title>
-  
-  <!-- Enlace al Manifest para instalación de App en Android -->
-  <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#0f172a">
-  
-  <!-- Estilos y Scripts CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-  <style>
-    [x-cloak] { display: none !important; }
-    .perspective-1000 { perspective: 1000px; }
-    .transform-style-3d { transform-style: preserve-3d; }
-    .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
-    .rotate-y-180 { transform: rotateY(180deg); }
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  </style>
+  <title>Prueba</title>
 </head>
-<body class="h-full font-sans text-slate-100 antialiased select-none bg-slate-900 flex justify-center" x-data="appData()" x-init="initApp()">
-
-  <div class="w-full max-w-md h-full flex flex-col bg-slate-900 shadow-2xl relative overflow-hidden border-x border-slate-800">
-    
-    <!-- Header -->
-    <header class="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700/60 sticky top-0 z-20">
-      <div class="flex items-center space-x-2">
-        <template x-if="currentTab === 'study'">
-          <button @click="currentTab = 'home'" class="p-1 rounded-full hover:bg-slate-700 text-slate-300">
-            <i data-lucide="arrow-left" class="w-6 h-6"></i>
-          </button>
-        </template>
-        <div class="flex items-center space-x-2">
-          <i data-lucide="layers" class="w-6 h-6 text-indigo-400"></i>
-          <h1 class="text-xl font-bold text-slate-100 truncate max-w-[200px]" x-text="currentTab === 'study' ? activeDeck?.title : 'Fichas de Estudio'"></h1>
-        </div>
-      </div>
-
-      <div class="flex items-center space-x-2">
-        <!-- Botón Mezclar Aleatorio (solo en pestaña de estudio) -->
-        <template x-if="currentTab === 'study' && activeDeck && activeDeck.cards.length > 1">
-          <button @click="shuffleCards()" title="Mezclar fichas aleatoriamente" class="p-2 bg-slate-700 hover:bg-slate-600 text-indigo-400 rounded-full shadow-lg transition">
-            <i data-lucide="shuffle" class="w-5 h-5"></i>
-          </button>
-        </template>
-
-        <!-- Botón Crear Mazo (solo en inicio) -->
-        <template x-if="currentTab === 'home'">
-          <button @click="openCreateDeckModal()" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-white shadow-lg">
-            <i data-lucide="folder-plus" class="w-5 h-5"></i>
-          </button>
-        </template>
-      </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto no-scrollbar p-4 relative flex flex-col">
-
-      <!-- Home Tab -->
-      <div x-show="currentTab === 'home'" class="space-y-4 flex-1">
-        <div class="relative">
-          <i data-lucide="search" class="w-5 h-5 absolute left-3 top-3 text-slate-400"></i>
-          <input type="text" x-model="searchQuery" placeholder="Buscar mazos..." 
-                 class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500">
-        </div>
-
-        <div class="space-y-3">
-          <template x-for="deck in filteredDecks" :key="deck.id">
-            <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center hover:border-indigo-500/50 transition">
-              <div class="flex-1 pr-3 cursor-pointer" @click="startStudy(deck)">
-                <h3 class="font-bold text-lg text-slate-100" x-text="deck.title"></h3>
-                <p class="text-xs text-slate-400 mt-0.5" x-text="deck.cards.length + ' tarjetas'"></p>
-              </div>
-
-              <div class="flex items-center space-x-2">
-                <button @click="openEditDeckModal(deck)" class="p-2 text-slate-400 hover:text-indigo-400 rounded-lg hover:bg-slate-700/50">
-                  <i data-lucide="edit-3" class="w-5 h-5"></i>
-                </button>
-                <button @click="deleteDeck(deck.id)" class="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-700/50">
-                  <i data-lucide="trash-2" class="w-5 h-5"></i>
-                </button>
-                <button @click="startStudy(deck)" class="p-2 bg-indigo-600/30 text-indigo-400 hover:bg-indigo-600/50 rounded-xl">
-                  <i data-lucide="play" class="w-5 h-5"></i>
-                </button>
-              </div>
-            </div>
-          </template>
-
-          <template x-if="filteredDecks.length === 0">
-            <div class="text-center py-12 text-slate-500">
-              <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-3 opacity-40"></i>
-              <p class="text-base font-medium">No se encontraron mazos</p>
-              <p class="text-xs mt-1">Crea un mazo con el botón +</p>
-            </div>
-          </template>
-        </div>
+<body style="background-color: #0f172a; color: white; text-align: center; padding-top: 50px; font-family: sans-serif;">
+  <h1>¡La página sí está cargando!</h1>
+  <p>Si ves este mensaje, la conexión con GitHub Pages funciona perfectamente.</p>
+</body>
+</html>
