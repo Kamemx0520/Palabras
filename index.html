@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Fichas de Estudio</title>
+  
+  <!-- Enlace al Manifest para instalación de App en Android -->
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#0f172a">
   
@@ -36,15 +38,25 @@
         </template>
         <div class="flex items-center space-x-2">
           <i data-lucide="layers" class="w-6 h-6 text-indigo-400"></i>
-          <h1 class="text-xl font-bold text-slate-100" x-text="currentTab === 'study' ? activeDeck?.title : 'Fichas de Estudio'"></h1>
+          <h1 class="text-xl font-bold text-slate-100 truncate max-w-[200px]" x-text="currentTab === 'study' ? activeDeck?.title : 'Fichas de Estudio'"></h1>
         </div>
       </div>
 
-      <template x-if="currentTab === 'home'">
-        <button @click="openCreateDeckModal()" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-white shadow-lg">
-          <i data-lucide="folder-plus" class="w-5 h-5"></i>
-        </button>
-      </template>
+      <div class="flex items-center space-x-2">
+        <!-- Botón Mezclar Aleatorio (solo en pestaña de estudio) -->
+        <template x-if="currentTab === 'study' && activeDeck && activeDeck.cards.length > 1">
+          <button @click="shuffleCards()" title="Mezclar fichas aleatoriamente" class="p-2 bg-slate-700 hover:bg-slate-600 text-indigo-400 rounded-full shadow-lg transition">
+            <i data-lucide="shuffle" class="w-5 h-5"></i>
+          </button>
+        </template>
+
+        <!-- Botón Crear Mazo (solo en inicio) -->
+        <template x-if="currentTab === 'home'">
+          <button @click="openCreateDeckModal()" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-white shadow-lg">
+            <i data-lucide="folder-plus" class="w-5 h-5"></i>
+          </button>
+        </template>
+      </div>
     </header>
 
     <!-- Main Content -->
@@ -88,229 +100,3 @@
             </div>
           </template>
         </div>
-      </div>
-
-      <!-- Study Tab -->
-      <div x-show="currentTab === 'study'" class="flex-1 flex flex-col justify-between items-center py-2" x-cloak>
-        <template x-if="activeDeck && activeDeck.cards.length > 0">
-          <div class="w-full flex-1 flex flex-col justify-between items-center space-y-4">
-            
-            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
-              <div class="bg-indigo-500 h-full transition-all duration-300"
-                   :style="'width: ' + ((currentCardIndex + 1) / activeDeck.cards.length * 100) + '%'"></div>
-            </div>
-
-            <div class="text-xs text-slate-400 font-semibold">
-              TARJETA <span x-text="currentCardIndex + 1"></span> DE <span x-text="activeDeck.cards.length"></span>
-            </div>
-
-            <!-- Card 3D Flip -->
-            <div class="w-full flex-1 max-h-[380px] perspective-1000 cursor-pointer my-auto" @click="isFlipped = !isFlipped">
-              <div class="relative w-full h-full duration-500 transform-style-3d transition-transform rounded-3xl shadow-xl"
-                   :class="{ 'rotate-y-180': isFlipped }">
-                
-                <!-- Front -->
-                <div class="absolute w-full h-full backface-hidden bg-gradient-to-br from-slate-800 to-slate-800/90 border-2 border-indigo-500/30 rounded-3xl p-6 flex flex-col justify-between items-center text-center">
-                  <div class="w-full text-right text-xs text-indigo-400 flex justify-end items-center space-x-1">
-                    <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-                    <span>Toca para girar</span>
-                  </div>
-                  <div class="my-auto">
-                    <h2 class="text-3xl font-extrabold text-slate-100 tracking-wide" x-text="currentCard?.term"></h2>
-                  </div>
-                  <div class="text-xs text-slate-500">Palabra / Término</div>
-                </div>
-
-                <!-- Back -->
-                <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900/40 to-slate-800 border-2 border-emerald-500/30 rounded-3xl p-6 flex flex-col justify-between items-center text-center">
-                  <div class="w-full text-right text-xs text-emerald-400 flex justify-end items-center space-x-1">
-                    <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
-                    <span>Toca para girar</span>
-                  </div>
-                  <div class="my-auto overflow-y-auto max-h-[220px] px-2 no-scrollbar">
-                    <p class="text-xl font-medium text-slate-200 leading-relaxed" x-text="currentCard?.definition"></p>
-                  </div>
-                  <div class="text-xs text-slate-500">Significado / Respuesta</div>
-                </div>
-
-              </div>
-            </div>
-
-            <!-- Controls -->
-            <div class="w-full grid grid-cols-2 gap-3 pt-2">
-              <button @click="prevCard()" :disabled="currentCardIndex === 0"
-                      class="flex items-center justify-center space-x-2 py-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:pointer-events-none rounded-2xl font-semibold text-slate-200 border border-slate-700">
-                <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                <span>Anterior</span>
-              </button>
-
-              <button @click="nextCard()" :disabled="currentCardIndex === activeDeck.cards.length - 1"
-                      class="flex items-center justify-center space-x-2 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:pointer-events-none rounded-2xl font-semibold text-white shadow-lg">
-                <span>Siguiente</span>
-                <i data-lucide="chevron-right" class="w-5 h-5"></i>
-              </button>
-            </div>
-
-          </div>
-        </template>
-      </div>
-
-    </main>
-
-    <!-- Modal -->
-    <div x-show="showDeckModal" x-cloak x-transition.opacity class="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 flex items-center justify-center p-4">
-      <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-3xl p-5 flex flex-col max-h-[85vh] shadow-2xl">
-        <div class="flex justify-between items-center mb-4 border-b border-slate-700/60 pb-3">
-          <h2 class="text-lg font-bold text-slate-100" x-text="editingDeckId ? 'Editar Mazo' : 'Nuevo Mazo'"></h2>
-          <button @click="showDeckModal = false" class="p-1 rounded-full text-slate-400 hover:bg-slate-700">
-            <i data-lucide="x" class="w-5 h-5"></i>
-          </button>
-        </div>
-
-        <div class="overflow-y-auto no-scrollbar space-y-4 flex-1 pr-1">
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 mb-1">Nombre del Mazo</label>
-            <input type="text" x-model="deckForm.title" placeholder="Ej. Vocabulario Inglés" 
-                   class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-slate-100 focus:outline-none focus:border-indigo-500">
-          </div>
-
-          <div class="space-y-3">
-            <div class="flex justify-between items-center">
-              <label class="text-xs font-semibold text-slate-400">Tarjetas / Fichas</label>
-              <button @click="addCardToForm()" class="text-xs text-indigo-400 font-semibold flex items-center space-x-1 hover:underline">
-                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
-                <span>Añadir Tarjeta</span>
-              </button>
-            </div>
-
-            <template x-for="(card, index) in deckForm.cards" :key="index">
-              <div class="bg-slate-900/80 border border-slate-700/70 p-3 rounded-2xl relative space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="text-xs font-semibold text-indigo-400" x-text="'#' + (index + 1)"></span>
-                  <button @click="removeCardFromForm(index)" class="text-slate-500 hover:text-rose-400 p-1">
-                    <i data-lucide="trash" class="w-4 h-4"></i>
-                  </button>
-                </div>
-                <input type="text" x-model="card.term" placeholder="Palabra / Frente" 
-                       class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                <textarea x-model="card.definition" placeholder="Significado / Reverso" rows="2"
-                          class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500 resize-none"></textarea>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <div class="pt-4 border-t border-slate-700/60 mt-2">
-          <button @click="saveDeck()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl text-white shadow-lg">
-            Guardar Mazo
-          </button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
-    function appData() {
-      return {
-        currentTab: 'home',
-        searchQuery: '',
-        showDeckModal: false,
-        editingDeckId: null,
-        deckForm: { title: '', cards: [] },
-        activeDeck: null,
-        currentCardIndex: 0,
-        isFlipped: false,
-        decks: [
-          {
-            id: 1,
-            title: 'Inglés - Básico',
-            cards: [
-              { term: 'Apple', definition: 'Manzana' },
-              { term: 'Book', definition: 'Libro' },
-              { term: 'Network', definition: 'Red / Infraestructura' },
-              { term: 'Software', definition: 'Programa / Aplicación' }
-            ]
-          }
-        ],
-        initApp() {
-          const savedDecks = localStorage.getItem('android_flashcards_decks');
-          if (savedDecks) {
-            try { this.decks = JSON.parse(savedDecks); } catch(e) {}
-          }
-          this.refreshIcons();
-        },
-        refreshIcons() {
-          setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 150);
-        },
-        saveToLocalStorage() {
-          localStorage.setItem('android_flashcards_decks', JSON.stringify(this.decks));
-        },
-        get filteredDecks() {
-          if (!this.searchQuery) return this.decks;
-          return this.decks.filter(d => d.title.toLowerCase().includes(this.searchQuery.toLowerCase()));
-        },
-        openCreateDeckModal() {
-          this.editingDeckId = null;
-          this.deckForm = { title: '', cards: [{ term: '', definition: '' }] };
-          this.showDeckModal = true;
-          this.refreshIcons();
-        },
-        openEditDeckModal(deck) {
-          this.editingDeckId = deck.id;
-          this.deckForm = JSON.parse(JSON.stringify(deck));
-          this.showDeckModal = true;
-          this.refreshIcons();
-        },
-        addCardToForm() {
-          this.deckForm.cards.push({ term: '', definition: '' });
-          this.refreshIcons();
-        },
-        removeCardFromForm(index) {
-          this.deckForm.cards.splice(index, 1);
-        },
-        saveDeck() {
-          if (!this.deckForm.title.trim()) return alert('Ingresa un título para el mazo');
-          if (this.editingDeckId) {
-            const idx = this.decks.findIndex(d => d.id === this.editingDeckId);
-            if (idx !== -1) this.decks[idx] = { ...this.deckForm, id: this.editingDeckId };
-          } else {
-            this.decks.push({ id: Date.now(), ...this.deckForm });
-          }
-          this.saveToLocalStorage();
-          this.showDeckModal = false;
-          this.refreshIcons();
-        },
-        deleteDeck(id) {
-          if (confirm('¿Deseas eliminar este mazo?')) {
-            this.decks = this.decks.filter(d => d.id !== id);
-            this.saveToLocalStorage();
-          }
-        },
-        startStudy(deck) {
-          this.activeDeck = deck;
-          this.currentCardIndex = 0;
-          this.isFlipped = false;
-          this.currentTab = 'study';
-          this.refreshIcons();
-        },
-        get currentCard() {
-          return this.activeDeck?.cards[this.currentCardIndex] || null;
-        },
-        nextCard() {
-          if (this.currentCardIndex < this.activeDeck.cards.length - 1) {
-            this.isFlipped = false;
-            setTimeout(() => { this.currentCardIndex++; }, 150);
-          }
-        },
-        prevCard() {
-          if (this.currentCardIndex > 0) {
-            this.isFlipped = false;
-            setTimeout(() => { this.currentCardIndex--; }, 150);
-          }
-        }
-      }
-    }
-  </script>
-</body>
-</html>
