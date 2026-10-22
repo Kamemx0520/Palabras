@@ -120,14 +120,14 @@
             <div class="bg-slate-800/60 border border-slate-700/60 rounded-2xl p-4 flex justify-between items-center hover:border-indigo-500/50 transition">
               <div class="flex-1 pr-3 cursor-pointer" @click="startStudy(deck)">
                 <h3 class="font-bold text-lg text-slate-100" x-text="deck.title"></h3>
-                <p class="text-xs text-slate-400 mt-0.5" x-text="deck.cards.length + ' tarjetas'"></p>
+                <p class="text-xs text-slate-400 mt-0.5" x-text="(deck.cards ? deck.cards.length : 0) + ' tarjetas'"></p>
               </div>
 
               <div class="flex items-center space-x-2">
                 <button @click="openEditDeckModal(deck)" class="p-2 text-slate-400 hover:text-indigo-400 rounded-lg hover:bg-slate-700/50" title="Editar mazo">
                   <i data-lucide="edit-3" class="w-5 h-5"></i>
                 </button>
-                <button @click="deleteDeck(deck.id)" class="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-700/50" title="Eliminar mazo (Requiere código especial)">
+                <button @click="deleteDeck(deck.id)" class="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-700/50" title="Eliminar mazo">
                   <i data-lucide="trash-2" class="w-5 h-5"></i>
                 </button>
                 <button @click="startStudy(deck)" class="p-2 bg-indigo-600/30 text-indigo-400 hover:bg-indigo-600/50 rounded-xl" title="Estudiar">
@@ -149,7 +149,7 @@
 
       <!-- Study Tab -->
       <div x-show="currentTab === 'study'" class="flex-1 flex flex-col justify-between items-center py-2" x-cloak>
-        <template x-if="activeDeck && activeDeck.cards.length > 0">
+        <template x-if="activeDeck && activeDeck.cards && activeDeck.cards.length > 0">
           <div class="w-full flex-1 flex flex-col justify-between items-center space-y-4">
             
             <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
@@ -350,8 +350,8 @@
   </div>
 
   <script>
-    const SECRET_CODE = "5910";    // <--- Código para entrar a la app
-    const DELETE_CODE = "1010";    // <--- CÓDIGO EXCLUSIVO PARA BORRAR (Cámbialo por el que tú quieras)
+    const SECRET_CODE = "1234";    // Código para entrar a la app
+    const DELETE_CODE = "5678";    // CÓDIGO EXCLUSIVO PARA BORRAR
 
     function appData() {
       return {
@@ -390,20 +390,7 @@
               snapshot.forEach((docSnap) => {
                 cloudDecks.push({ id: docSnap.id, ...docSnap.data() });
               });
-              if (cloudDecks.length > 0) {
-                this.decks = cloudDecks;
-              } else {
-                this.saveDeckToFirebase({
-                  id: 1,
-                  title: 'Inglés - Básico',
-                  cards: [
-                    { term: 'Apple', definition: 'Manzana' },
-                    { term: 'Book', definition: 'Libro' },
-                    { term: 'Network', definition: 'Red / Infraestructura' },
-                    { term: 'Software', definition: 'Programa / Aplicación' }
-                  ]
-                });
-              }
+              this.decks = cloudDecks;
               this.refreshIcons();
             });
           });
@@ -469,14 +456,19 @@
           this.refreshIcons();
         },
         async deleteDeck(id) {
-          // Pide el código secreto exclusivo de borrado
           const codeInput = prompt('🔒 Ingresa el código secreto de administrador para eliminar este mazo:');
           
-          if (codeInput === null) return; // Si cancela, no hace nada
+          if (codeInput === null) return;
 
           if (codeInput.trim() === DELETE_CODE) {
+            // Elimina de la base de datos de Firebase
             await this.deleteDeckFromFirebase(id);
-            alert('✅ Mazo eliminado correctamente de la nube.');
+            // Remueve de la lista local en pantalla inmediatamente
+            this.decks = this.decks.filter(d => String(d.id) !== String(id));
+            // Limpia también el almacenamiento local si existía versión estática previa
+            localStorage.removeItem('android_flashcards_decks');
+            alert('✅ Mazo eliminado correctamente.');
+            this.refreshIcons();
           } else {
             alert('❌ Código incorrecto. No tienes permisos para eliminar mazos.');
           }
@@ -518,7 +510,7 @@
           }
         },
         startQuiz() {
-          if (!this.activeDeck || this.activeDeck.cards.length === 0) return;
+          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length === 0) return;
           this.currentTab = 'quiz';
           this.quizFinished = false;
           this.quizIndex = 0;
