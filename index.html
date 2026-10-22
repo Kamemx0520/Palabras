@@ -165,28 +165,28 @@
               <div class="relative w-full h-full duration-500 transform-style-3d transition-transform rounded-3xl shadow-xl"
                    :class="{ 'rotate-y-180': isFlipped }">
                 
-                <!-- Front -->
+                <!-- Front (Solo Término/Palabra) -->
                 <div class="absolute w-full h-full backface-hidden bg-gradient-to-br from-slate-800 to-slate-800/90 border-2 border-indigo-500/30 rounded-3xl p-5 flex flex-col justify-between items-center text-center overflow-y-auto no-scrollbar">
                   <div class="w-full text-right text-xs text-indigo-400 flex justify-end items-center space-x-1">
                     <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
                     <span>Toca para girar</span>
                   </div>
                   <div class="my-auto space-y-3 w-full">
-                    <template x-if="currentCard && currentCard.imageUrl">
-                      <img :src="currentCard.imageUrl" class="max-h-40 mx-auto rounded-xl object-contain border border-slate-700/60 shadow-md">
-                    </template>
-                    <h2 class="text-2xl font-extrabold text-slate-100 tracking-wide" x-text="currentCard ? currentCard.term : ''"></h2>
+                    <h2 class="text-3xl font-extrabold text-slate-100 tracking-wide" x-text="currentCard ? currentCard.term : ''"></h2>
                   </div>
                   <div class="text-xs text-slate-500">Palabra / Término</div>
                 </div>
 
-                <!-- Back -->
+                <!-- Back (Definición + Imagen opcional) -->
                 <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900/40 to-slate-800 border-2 border-emerald-500/30 rounded-3xl p-5 flex flex-col justify-between items-center text-center overflow-y-auto no-scrollbar">
                   <div class="w-full text-right text-xs text-emerald-400 flex justify-end items-center space-x-1">
                     <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
                     <span>Toca para girar</span>
                   </div>
-                  <div class="my-auto overflow-y-auto max-h-[250px] px-2 no-scrollbar w-full space-y-2">
+                  <div class="my-auto overflow-y-auto max-h-[250px] px-2 no-scrollbar w-full space-y-3">
+                    <template x-if="currentCard && currentCard.imageUrl">
+                      <img :src="currentCard.imageUrl" class="max-h-36 mx-auto rounded-xl object-contain border border-slate-700/60 shadow-md">
+                    </template>
                     <p class="text-lg font-medium text-slate-200 leading-relaxed" x-text="currentCard ? currentCard.definition : ''"></p>
                   </div>
                   <div class="text-xs text-slate-500">Significado / Respuesta</div>
@@ -203,10 +203,10 @@
                 <span>Anterior</span>
               </button>
 
-              <button @click="nextCard()" :disabled="currentCardIndex === activeDeck.cards.length - 1"
-                      class="flex items-center justify-center space-x-2 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:pointer-events-none rounded-2xl font-semibold text-white shadow-lg">
-                <span>Siguiente</span>
-                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+              <button @click="nextCard()"
+                      class="flex items-center justify-center space-x-2 py-3 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-semibold text-white shadow-lg">
+                <span x-text="currentCardIndex === activeDeck.cards.length - 1 ? 'Iniciar Examen' : 'Siguiente'"></span>
+                <i :data-lucide="currentCardIndex === activeDeck.cards.length - 1 ? 'help-circle' : 'chevron-right'" class="w-5 h-5"></i>
               </button>
             </div>
 
@@ -243,9 +243,6 @@
             <!-- Pregunta -->
             <div class="bg-slate-800/80 border border-slate-700 rounded-3xl p-5 text-center space-y-3">
               <span class="text-xs uppercase tracking-widest text-slate-500 font-bold">¿Qué significa o cuál es el término para?:</span>
-              <template x-if="currentQuizQuestion.imageUrl">
-                <img :src="currentQuizQuestion.imageUrl" class="max-h-36 mx-auto rounded-xl object-contain border border-slate-700/60 shadow-md">
-              </template>
               <h2 class="text-2xl font-extrabold text-slate-100" x-text="currentQuizQuestion.prompt"></h2>
             </div>
 
@@ -514,9 +511,14 @@
           return this.activeDeck.cards[this.currentCardIndex] || null;
         },
         nextCard() {
-          if (this.activeDeck && this.currentCardIndex < this.activeDeck.cards.length - 1) {
-            this.isFlipped = false;
-            setTimeout(() => { this.currentCardIndex++; }, 150);
+          if (this.activeDeck) {
+            if (this.currentCardIndex < this.activeDeck.cards.length - 1) {
+              this.isFlipped = false;
+              setTimeout(() => { this.currentCardIndex++; }, 150);
+            } else {
+              // Al llegar al final de las tarjetas, inicia automáticamente el examen
+              this.startQuiz();
+            }
           }
         },
         prevCard() {
@@ -546,7 +548,6 @@
               return {
                 type: 'choice',
                 prompt: card.term,
-                imageUrl: card.imageUrl || '',
                 correct: card.definition,
                 options: options
               };
@@ -554,7 +555,6 @@
               return {
                 type: 'write',
                 prompt: card.term,
-                imageUrl: card.imageUrl || '',
                 correct: card.definition
               };
             }
