@@ -90,7 +90,7 @@
             <button @click="startQuiz()" title="Modo Examen / Práctica" class="p-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-400 rounded-full shadow-lg">
               <i data-lucide="help-circle" class="w-5 h-5"></i>
             </button>
-            <button @click="shuffleCards()" title="Mezclar fichas" class="p-2 bg-slate-700 hover:bg-slate-600 text-indigo-400 rounded-full shadow-lg">
+            <button @click="shuffleCards()" title="Mezclar fichas manualmente" class="p-2 bg-slate-700 hover:bg-slate-600 text-indigo-400 rounded-full shadow-lg">
               <i data-lucide="shuffle" class="w-5 h-5"></i>
             </button>
           </div>
@@ -339,7 +339,6 @@
                 <input type="text" x-model="card.term" placeholder="Palabra / Frente" 
                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
                 
-                <!-- NUEVO: Input para la URL de la imagen -->
                 <input type="text" x-model="card.imageUrl" placeholder="URL de imagen (opcional https://...)" 
                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
 
@@ -482,111 +481,22 @@
           }
         },
         startStudy(deck) {
-          this.activeDeck = JSON.parse(JSON.stringify(deck));
+          let deckCopy = JSON.parse(JSON.stringify(deck));
+          
+          // BARAJA LAS TARJETAS AUTOMÁTICAMENTE AL ENTRAR AL MAZO
+          if (deckCopy.cards && deckCopy.cards.length > 1) {
+            let cards = deckCopy.cards;
+            for (let i = cards.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+          }
+
+          this.activeDeck = deckCopy;
           this.currentCardIndex = 0;
           this.isFlipped = false;
           this.currentTab = 'study';
           this.refreshIcons();
         },
         shuffleCards() {
-          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length <= 1) return;
-          this.isFlipped = false;
-          setTimeout(() => {
-            let cards = [...this.activeDeck.cards];
-            for (let i = cards.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [cards[i], cards[j]] = [cards[j], cards[i]];
-            }
-            this.activeDeck.cards = cards;
-            this.currentCardIndex = 0;
-          }, 150);
-        },
-        get currentCard() {
-          if (!this.activeDeck || !this.activeDeck.cards) return null;
-          return this.activeDeck.cards[this.currentCardIndex] || null;
-        },
-        nextCard() {
-          if (this.activeDeck && this.currentCardIndex < this.activeDeck.cards.length - 1) {
-            this.isFlipped = false;
-            setTimeout(() => { this.currentCardIndex++; }, 150);
-          }
-        },
-        prevCard() {
-          if (this.currentCardIndex > 0) {
-            this.isFlipped = false;
-            setTimeout(() => { this.currentCardIndex--; }, 150);
-          }
-        },
-        startQuiz() {
-          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length === 0) return;
-          this.currentTab = 'quiz';
-          this.quizFinished = false;
-          this.quizIndex = 0;
-
-          let cards = [...this.activeDeck.cards];
-          cards.sort(() => Math.random() - 0.5);
-
-          this.quizQuestions = cards.map((card, idx) => {
-            const isChoice = idx % 2 === 0 || cards.length < 3;
-            if (isChoice) {
-              let others = this.activeDeck.cards.filter(c => c.definition !== card.definition).map(c => c.definition);
-              others.sort(() => Math.random() - 0.5);
-              let options = others.slice(0, 3);
-              options.push(card.definition);
-              options.sort(() => Math.random() - 0.5);
-
-              return {
-                type: 'choice',
-                prompt: card.term,
-                imageUrl: card.imageUrl || '',
-                correct: card.definition,
-                options: options
-              };
-            } else {
-              return {
-                type: 'write',
-                prompt: card.term,
-                imageUrl: card.imageUrl || '',
-                correct: card.definition
-              };
-            }
-          });
-
-          this.loadQuizQuestion();
-          this.refreshIcons();
-        },
-        loadQuizQuestion() {
-          if (this.quizIndex < this.quizQuestions.length) {
-            this.currentQuizQuestion = this.quizQuestions[this.quizIndex];
-            this.quizSelectedOption = null;
-            this.quizInputAnswer = '';
-            this.quizAnswered = false;
-            this.quizIsCorrect = false;
-          } else {
-            this.quizFinished = true;
-          }
-          this.refreshIcons();
-        },
-        answerChoice(option) {
-          this.quizSelectedOption = option;
-          setTimeout(() => {
-            this.quizIndex++;
-            this.loadQuizQuestion();
-          }, 1200);
-        },
-        submitWrittenAnswer() {
-          if (!this.quizInputAnswer.trim()) return;
-          this.quizAnswered = true;
-          const userAns = this.quizInputAnswer.trim().toLowerCase();
-          const correctAns = this.currentQuizQuestion.correct.trim().toLowerCase();
-          this.quizIsCorrect = userAns === correctAns;
-        },
-        nextQuizQuestion() {
-          this.quizIndex++;
-          this.loadQuizQuestion();
-        }
-      }
-    }
-  </script>
-</body>
-</html>
+          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length <=
