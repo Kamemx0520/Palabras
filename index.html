@@ -14,7 +14,6 @@
   <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
 
   <style>
-    [x-cloak] { display: none !important; }
     .perspective-1000 { perspective: 1000px; }
     .transform-style-3d { transform-style: preserve-3d; }
     .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
@@ -47,7 +46,7 @@
 <body class="h-full font-sans text-slate-100 antialiased select-none bg-slate-900 flex justify-center" x-data="appData()" x-init="initApp()">
 
   <!-- MODAL DE BLOQUEO POR CÓDIGO DE ACCESO -->
-  <div x-show="!isAuthorized" x-cloak class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
+  <div x-show="!isAuthorized" class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
     <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl space-y-4">
       <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-2xl mx-auto flex items-center justify-center mb-2">
         <i data-lucide="lock" class="w-8 h-8"></i>
@@ -62,7 +61,7 @@
           Ingresar
         </button>
       </form>
-      <p x-show="authError" class="text-xs text-rose-400 font-medium" x-cloak>Código incorrecto. Intenta de nuevo.</p>
+      <p x-show="authError" class="text-xs text-rose-400 font-medium">Código incorrecto. Intenta de nuevo.</p>
     </div>
   </div>
 
@@ -148,7 +147,7 @@
       </div>
 
       <!-- Study Tab -->
-      <div x-show="currentTab === 'study'" class="flex-1 flex flex-col justify-between items-center py-2" x-cloak>
+      <div x-show="currentTab === 'study'" class="flex-1 flex flex-col justify-between items-center py-2">
         <template x-if="activeDeck && activeDeck.cards && activeDeck.cards.length > 0">
           <div class="w-full flex-1 flex flex-col justify-between items-center space-y-4">
             
@@ -216,7 +215,7 @@
       </div>
 
       <!-- Quiz Tab -->
-      <div x-show="currentTab === 'quiz'" class="flex-1 flex flex-col justify-between py-2 space-y-4" x-cloak>
+      <div x-show="currentTab === 'quiz'" class="flex-1 flex flex-col justify-between py-2 space-y-4">
         <template x-if="quizFinished">
           <div class="text-center my-auto space-y-4 bg-slate-800/60 border border-slate-700 p-6 rounded-3xl">
             <div class="w-16 h-16 bg-emerald-600/20 text-emerald-400 rounded-full mx-auto flex items-center justify-center">
@@ -303,7 +302,7 @@
     </main>
 
     <!-- Modal Editar / Crear Mazo -->
-    <div x-show="showDeckModal" x-cloak x-transition.opacity class="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+    <div x-show="showDeckModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-30 flex items-center justify-center p-4">
       <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-3xl p-5 flex flex-col max-h-[85vh] shadow-2xl">
         <div class="flex justify-between items-center mb-4 border-b border-slate-700/60 pb-3">
           <h2 class="text-lg font-bold text-slate-100" x-text="editingDeckId ? 'Editar Mazo' : 'Nuevo Mazo'"></h2>
@@ -483,7 +482,6 @@
         startStudy(deck) {
           let deckCopy = JSON.parse(JSON.stringify(deck));
           
-          // BARAJA LAS TARJETAS AUTOMÁTICAMENTE AL ENTRAR AL MAZO
           if (deckCopy.cards && deckCopy.cards.length > 1) {
             let cards = deckCopy.cards;
             for (let i = cards.length - 1; i > 0; i--) {
@@ -499,4 +497,104 @@
           this.refreshIcons();
         },
         shuffleCards() {
-          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length <=
+          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length <= 1) return;
+          this.isFlipped = false;
+          setTimeout(() => {
+            let cards = [...this.activeDeck.cards];
+            for (let i = cards.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+            this.activeDeck.cards = cards;
+            this.currentCardIndex = 0;
+          }, 150);
+        },
+        get currentCard() {
+          if (!this.activeDeck || !this.activeDeck.cards) return null;
+          return this.activeDeck.cards[this.currentCardIndex] || null;
+        },
+        nextCard() {
+          if (this.activeDeck && this.currentCardIndex < this.activeDeck.cards.length - 1) {
+            this.isFlipped = false;
+            setTimeout(() => { this.currentCardIndex++; }, 150);
+          }
+        },
+        prevCard() {
+          if (this.currentCardIndex > 0) {
+            this.isFlipped = false;
+            setTimeout(() => { this.currentCardIndex--; }, 150);
+          }
+        },
+        startQuiz() {
+          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length === 0) return;
+          this.currentTab = 'quiz';
+          this.quizFinished = false;
+          this.quizIndex = 0;
+
+          let cards = [...this.activeDeck.cards];
+          cards.sort(() => Math.random() - 0.5);
+
+          this.quizQuestions = cards.map((card, idx) => {
+            const isChoice = idx % 2 === 0 || cards.length < 3;
+            if (isChoice) {
+              let others = this.activeDeck.cards.filter(c => c.definition !== card.definition).map(c => c.definition);
+              others.sort(() => Math.random() - 0.5);
+              let options = others.slice(0, 3);
+              options.push(card.definition);
+              options.sort(() => Math.random() - 0.5);
+
+              return {
+                type: 'choice',
+                prompt: card.term,
+                imageUrl: card.imageUrl || '',
+                correct: card.definition,
+                options: options
+              };
+            } else {
+              return {
+                type: 'write',
+                prompt: card.term,
+                imageUrl: card.imageUrl || '',
+                correct: card.definition
+              };
+            }
+          });
+
+          this.loadQuizQuestion();
+          this.refreshIcons();
+        },
+        loadQuizQuestion() {
+          if (this.quizIndex < this.quizQuestions.length) {
+            this.currentQuizQuestion = this.quizQuestions[this.quizIndex];
+            this.quizSelectedOption = null;
+            this.quizInputAnswer = '';
+            this.quizAnswered = false;
+            this.quizIsCorrect = false;
+          } else {
+            this.quizFinished = true;
+          }
+          this.refreshIcons();
+        },
+        answerChoice(option) {
+          this.quizSelectedOption = option;
+          setTimeout(() => {
+            this.quizIndex++;
+            this.loadQuizQuestion();
+          }, 1200);
+        },
+        submitWrittenAnswer() {
+          if (!this.quizInputAnswer.trim()) return;
+          this.quizAnswered = true;
+          const userAns = this.quizInputAnswer.trim().toLowerCase();
+          const correctAns = this.currentQuizQuestion.correct.trim().toLowerCase();
+          this.quizIsCorrect = userAns === correctAns;
+        },
+        nextQuizQuestion() {
+          this.quizIndex++;
+          this.loadQuizQuestion();
+        }
+      }
+    }
+  </script>
+</body>
+</html>
