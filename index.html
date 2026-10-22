@@ -72,29 +72,18 @@
     <header class="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700/60 sticky top-0 z-20">
       <div class="flex items-center space-x-2">
         <template x-if="currentTab !== 'home'">
-          <button @click="currentTab = 'home'; activeQuiz = null;" class="p-1 rounded-full hover:bg-slate-700 text-slate-300">
+          <button @click="currentTab = 'home'; activeDeck = null;" class="p-1 rounded-full hover:bg-slate-700 text-slate-300">
             <i data-lucide="arrow-left" class="w-6 h-6"></i>
           </button>
         </template>
         <div class="flex items-center space-x-2">
           <i data-lucide="layers" class="w-6 h-6 text-indigo-400"></i>
-          <h1 class="text-xl font-bold text-slate-100 truncate max-w-[160px]" 
-              x-text="currentTab === 'study' ? activeDeck?.title : (currentTab === 'quiz' ? 'Examen / Práctica' : 'Fichas de Estudio')"></h1>
+          <h1 class="text-xl font-bold text-slate-100 truncate max-w-[180px]" 
+              x-text="currentTab === 'study' ? activeDeck?.title : (currentTab === 'quiz' ? 'Examen Final' : 'Fichas de Estudio')"></h1>
         </div>
       </div>
 
       <div class="flex items-center space-x-2">
-        <template x-if="currentTab === 'study'">
-          <div class="flex items-center space-x-1">
-            <button @click="startQuiz()" title="Modo Examen / Práctica" class="p-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-400 rounded-full shadow-lg">
-              <i data-lucide="help-circle" class="w-5 h-5"></i>
-            </button>
-            <button @click="shuffleCards()" title="Mezclar fichas manualmente" class="p-2 bg-slate-700 hover:bg-slate-600 text-indigo-400 rounded-full shadow-lg">
-              <i data-lucide="shuffle" class="w-5 h-5"></i>
-            </button>
-          </div>
-        </template>
-
         <template x-if="currentTab === 'home'">
           <button @click="openCreateDeckModal()" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-white shadow-lg">
             <i data-lucide="folder-plus" class="w-5 h-5"></i>
@@ -165,7 +154,7 @@
               <div class="relative w-full h-full duration-500 transform-style-3d transition-transform rounded-3xl shadow-xl"
                    :class="{ 'rotate-y-180': isFlipped }">
                 
-                <!-- Front (Término/Palabra - Con scroll habilitado) -->
+                <!-- Front (Término/Palabra) -->
                 <div class="absolute w-full h-full backface-hidden bg-gradient-to-br from-slate-800 to-slate-800/90 border-2 border-indigo-500/30 rounded-3xl p-5 flex flex-col justify-between items-center text-center overflow-y-auto">
                   <div class="w-full text-right text-xs text-indigo-400 flex justify-end items-center space-x-1 shrink-0">
                     <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
@@ -177,7 +166,7 @@
                   <div class="text-xs text-slate-500 shrink-0">Palabra / Término</div>
                 </div>
 
-                <!-- Back (Definición + Imagen - Con scroll habilitado para texto largo) -->
+                <!-- Back (Definición + Imagen) -->
                 <div class="absolute w-full h-full backface-hidden rotate-y-180 bg-gradient-to-br from-indigo-900/40 to-slate-800 border-2 border-emerald-500/30 rounded-3xl p-5 flex flex-col justify-between items-center text-center overflow-y-auto">
                   <div class="w-full text-right text-xs text-emerald-400 flex justify-end items-center space-x-1 shrink-0">
                     <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
@@ -221,7 +210,7 @@
             <div class="w-16 h-16 bg-emerald-600/20 text-emerald-400 rounded-full mx-auto flex items-center justify-center">
               <i data-lucide="award" class="w-8 h-8"></i>
             </div>
-            <h2 class="text-2xl font-bold text-slate-100">¡Práctica Terminada!</h2>
+            <h2 class="text-2xl font-bold text-slate-100">¡Examen Terminado!</h2>
             <p class="text-sm text-slate-300">Has completado todas las preguntas del mazo.</p>
             
             <!-- Calificación obtenida -->
@@ -229,13 +218,9 @@
               <p class="text-xs text-slate-400 uppercase tracking-widest font-bold">Tu Calificación Final</p>
               <p class="text-3xl font-extrabold text-indigo-400 mt-1" x-text="quizScore + ' / ' + quizQuestions.length"></p>
             </div>
-
-            <button @click="startQuiz()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl text-white shadow-lg">
-              Repetir Práctica
-            </button>
             
             <!-- Botón Aceptar para volver al inicio -->
-            <button @click="currentTab = 'home'; activeDeck = null;" class="w-full py-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-2xl text-slate-300 border border-slate-700">
+            <button @click="currentTab = 'home'; activeDeck = null;" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl text-white shadow-lg">
               Aceptar
             </button>
           </div>
@@ -460,6 +445,7 @@
         startStudy(deck) {
           let deckCopy = JSON.parse(JSON.stringify(deck));
           
+          // BARAJA LAS TARJETAS AUTOMÁTICAMENTE AL ENTRAR AL MAZO (SIN BOTONES)
           if (deckCopy.cards && deckCopy.cards.length > 1) {
             let cards = deckCopy.cards;
             for (let i = cards.length - 1; i > 0; i--) {
@@ -474,19 +460,6 @@
           this.currentTab = 'study';
           this.refreshIcons();
         },
-        shuffleCards() {
-          if (!this.activeDeck || !this.activeDeck.cards || this.activeDeck.cards.length <= 1) return;
-          this.isFlipped = false;
-          setTimeout(() => {
-            let cards = [...this.activeDeck.cards];
-            for (let i = cards.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [cards[i], cards[j]] = [cards[j], cards[i]];
-            }
-            this.activeDeck.cards = cards;
-            this.currentCardIndex = 0;
-          }, 150);
-        },
         get currentCard() {
           if (!this.activeDeck || !this.activeDeck.cards) return null;
           return this.activeDeck.cards[this.currentCardIndex] || null;
@@ -497,6 +470,7 @@
               this.isFlipped = false;
               setTimeout(() => { this.currentCardIndex++; }, 150);
             } else {
+              // AL TERMINAR LAS TARJETAS, LANZA EL EXAMEN AUTOMÁTICAMENTE
               this.startQuiz();
             }
           }
@@ -518,11 +492,9 @@
           cards.sort(() => Math.random() - 0.5);
 
           this.quizQuestions = cards.map((card) => {
-            // Obtener otras definiciones para los distractores
             let others = this.activeDeck.cards.filter(c => c.definition !== card.definition).map(c => c.definition);
             others.sort(() => Math.random() - 0.5);
             
-            // Máximo 2 distractores para tener un total de máximo 3 opciones
             let distractorsCount = Math.min(2, others.length);
             let options = others.slice(0, distractorsCount);
             options.push(card.definition);
