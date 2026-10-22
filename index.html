@@ -23,7 +23,7 @@
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
 
-  <!-- FIREBASE SDK (Configurado con tus credenciales) -->
+  <!-- FIREBASE SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -124,13 +124,13 @@
               </div>
 
               <div class="flex items-center space-x-2">
-                <button @click="openEditDeckModal(deck)" class="p-2 text-slate-400 hover:text-indigo-400 rounded-lg hover:bg-slate-700/50">
+                <button @click="openEditDeckModal(deck)" class="p-2 text-slate-400 hover:text-indigo-400 rounded-lg hover:bg-slate-700/50" title="Editar mazo">
                   <i data-lucide="edit-3" class="w-5 h-5"></i>
                 </button>
-                <button @click="deleteDeck(deck.id)" class="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-700/50">
+                <button @click="deleteDeck(deck.id)" class="p-2 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-700/50" title="Eliminar mazo (Requiere código especial)">
                   <i data-lucide="trash-2" class="w-5 h-5"></i>
                 </button>
-                <button @click="startStudy(deck)" class="p-2 bg-indigo-600/30 text-indigo-400 hover:bg-indigo-600/50 rounded-xl">
+                <button @click="startStudy(deck)" class="p-2 bg-indigo-600/30 text-indigo-400 hover:bg-indigo-600/50 rounded-xl" title="Estudiar">
                   <i data-lucide="play" class="w-5 h-5"></i>
                 </button>
               </div>
@@ -350,7 +350,8 @@
   </div>
 
   <script>
-    const SECRET_CODE = "5910"; // <--- CAMBIA AQUÍ TU CÓDIGO SECRETO SI DESEAS OTRO
+    const SECRET_CODE = "1234";    // <--- Código para entrar a la app
+    const DELETE_CODE = "1010";    // <--- CÓDIGO EXCLUSIVO PARA BORRAR (Cámbialo por el que tú quieras)
 
     function appData() {
       return {
@@ -468,8 +469,16 @@
           this.refreshIcons();
         },
         async deleteDeck(id) {
-          if (confirm('¿Deseas eliminar este mazo para todos los usuarios?')) {
+          // Pide el código secreto exclusivo de borrado
+          const codeInput = prompt('🔒 Ingresa el código secreto de administrador para eliminar este mazo:');
+          
+          if (codeInput === null) return; // Si cancela, no hace nada
+
+          if (codeInput.trim() === DELETE_CODE) {
             await this.deleteDeckFromFirebase(id);
+            alert('✅ Mazo eliminado correctamente de la nube.');
+          } else {
+            alert('❌ Código incorrecto. No tienes permisos para eliminar mazos.');
           }
         },
         startStudy(deck) {
