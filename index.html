@@ -22,34 +22,80 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   </style>
+
+  <!-- FIREBASE SDK (Configurado con tus credenciales) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCS0dN_QSwgwdJXPO-o6zH69UebpZNnlfE",
+      authDomain: "fichas-estudio.firebaseapp.com",
+      projectId: "fichas-estudio",
+      storageBucket: "fichas-estudio.firebasestorage.app",
+      messagingSenderId: "149168785858",
+      appId: "1:149168785858:web:c050886e81d9bda6d6ee5b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.firebaseDB = { db, collection, onSnapshot, doc, setDoc, deleteDoc };
+    window.dispatchEvent(new CustomEvent('firebase-loaded'));
+  </script>
 </head>
 <body class="h-full font-sans text-slate-100 antialiased select-none bg-slate-900 flex justify-center" x-data="appData()" x-init="initApp()">
 
+  <!-- MODAL DE BLOQUEO POR CÓDIGO DE ACCESO -->
+  <div x-show="!isAuthorized" x-cloak class="fixed inset-0 bg-slate-950 z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl space-y-4">
+      <div class="w-16 h-16 bg-indigo-600/20 text-indigo-400 rounded-2xl mx-auto flex items-center justify-center mb-2">
+        <i data-lucide="lock" class="w-8 h-8"></i>
+      </div>
+      <h2 class="text-xl font-bold text-slate-100">Acceso Protegido</h2>
+      <p class="text-xs text-slate-400">Ingresa el código secreto para entrar a las fichas.</p>
+      
+      <form @submit.prevent="checkAccess()" class="space-y-3">
+        <input type="password" x-model="inputCode" placeholder="Código de acceso" 
+               class="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-center text-lg text-slate-100 tracking-widest focus:outline-none focus:border-indigo-500">
+        <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-xl text-white shadow-lg transition">
+          Ingresar
+        </button>
+      </form>
+      <p x-show="authError" class="text-xs text-rose-400 font-medium" x-cloak>Código incorrecto. Intenta de nuevo.</p>
+    </div>
+  </div>
+
+  <!-- APLICACIÓN PRINCIPAL -->
   <div class="w-full max-w-md h-full flex flex-col bg-slate-900 shadow-2xl relative overflow-hidden border-x border-slate-800">
     
     <!-- Header -->
     <header class="bg-slate-800 px-4 py-3 flex items-center justify-between border-b border-slate-700/60 sticky top-0 z-20">
       <div class="flex items-center space-x-2">
-        <template x-if="currentTab === 'study'">
-          <button @click="currentTab = 'home'" class="p-1 rounded-full hover:bg-slate-700 text-slate-300">
+        <template x-if="currentTab !== 'home'">
+          <button @click="currentTab = 'home'; activeQuiz = null;" class="p-1 rounded-full hover:bg-slate-700 text-slate-300">
             <i data-lucide="arrow-left" class="w-6 h-6"></i>
           </button>
         </template>
         <div class="flex items-center space-x-2">
           <i data-lucide="layers" class="w-6 h-6 text-indigo-400"></i>
-          <h1 class="text-xl font-bold text-slate-100 truncate max-w-[180px]" x-text="currentTab === 'study' ? activeDeck?.title : 'Fichas de Estudio'"></h1>
+          <h1 class="text-xl font-bold text-slate-100 truncate max-w-[160px]" 
+              x-text="currentTab === 'study' ? activeDeck?.title : (currentTab === 'quiz' ? 'Examen / Práctica' : 'Fichas de Estudio')"></h1>
         </div>
       </div>
 
       <div class="flex items-center space-x-2">
-        <!-- Botón Mezclar Fichas -->
         <template x-if="currentTab === 'study'">
-          <button @click="shuffleCards()" title="Mezclar fichas" class="p-2 bg-slate-700 hover:bg-slate-600 text-indigo-400 rounded-full shadow-lg">
-            <i data-lucide="shuffle" class="w-5 h-5"></i>
-          </button>
+          <div class="flex items-center space-x-1">
+            <button @click="startQuiz()" title="Modo Examen / Práctica" class="p-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-400 rounded-full shadow-lg">
+              <i data-lucide="help-circle" class="w-5 h-5"></i>
+            </button>
+            <button @click="shuffleCards()" title="Mezclar fichas" class="p-2 bg-slate-700 hover:bg-slate-600 text-indigo-400 rounded-full shadow-lg">
+              <i data-lucide="shuffle" class="w-5 h-5"></i>
+            </button>
+          </div>
         </template>
 
-        <!-- Botón Crear Mazo -->
         <template x-if="currentTab === 'home'">
           <button @click="openCreateDeckModal()" class="p-2 bg-indigo-600 hover:bg-indigo-500 rounded-full text-white shadow-lg">
             <i data-lucide="folder-plus" class="w-5 h-5"></i>
@@ -166,6 +212,88 @@
         </template>
       </div>
 
+      <!-- Quiz Tab -->
+      <div x-show="currentTab === 'quiz'" class="flex-1 flex flex-col justify-between py-2 space-y-4" x-cloak>
+        <template x-if="quizFinished">
+          <div class="text-center my-auto space-y-4 bg-slate-800/60 border border-slate-700 p-6 rounded-3xl">
+            <div class="w-16 h-16 bg-emerald-600/20 text-emerald-400 rounded-full mx-auto flex items-center justify-center">
+              <i data-lucide="award" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-slate-100">¡Práctica Terminada!</h2>
+            <p class="text-sm text-slate-300">Has completado todas las preguntas del mazo.</p>
+            <button @click="startQuiz()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl text-white shadow-lg">
+              Repetir Práctica
+            </button>
+            <button @click="currentTab = 'study'" class="w-full py-3 bg-slate-800 hover:bg-slate-700 font-semibold rounded-2xl text-slate-300 border border-slate-700">
+              Volver al Mazo
+            </button>
+          </div>
+        </template>
+
+        <template x-if="!quizFinished && currentQuizQuestion">
+          <div class="flex-1 flex flex-col justify-between space-y-4">
+            
+            <div class="flex justify-between items-center text-xs text-slate-400 font-semibold">
+              <span>PREGUNTA <span x-text="quizIndex + 1"></span> DE <span x-text="activeDeck.cards.length"></span></span>
+              <span class="text-indigo-400" x-text="currentQuizQuestion.type === 'choice' ? 'Opción Múltiple' : 'Escribir Significado'"></span>
+            </div>
+
+            <!-- Pregunta -->
+            <div class="bg-slate-800/80 border border-slate-700 rounded-3xl p-6 text-center space-y-3">
+              <span class="text-xs uppercase tracking-widest text-slate-500 font-bold">¿Qué significa o cuál es el término para?:</span>
+              <h2 class="text-2xl font-extrabold text-slate-100" x-text="currentQuizQuestion.prompt"></h2>
+            </div>
+
+            <!-- Opción Múltiple -->
+            <template x-if="currentQuizQuestion.type === 'choice'">
+              <div class="space-y-2.5">
+                <template x-for="(option, idx) in currentQuizQuestion.options" :key="idx">
+                  <button @click="answerChoice(option)" 
+                          class="w-full p-4 rounded-2xl text-left font-medium border text-sm transition flex justify-between items-center"
+                          :class="{
+                            'bg-slate-800 border-slate-700 hover:border-indigo-500 text-slate-200': quizSelectedOption === null,
+                            'bg-emerald-600/30 border-emerald-500 text-emerald-200': quizSelectedOption !== null && option === currentQuizQuestion.correct,
+                            'bg-rose-600/30 border-rose-500 text-rose-200': quizSelectedOption !== null && quizSelectedOption === option && option !== currentQuizQuestion.correct,
+                            'bg-slate-800/40 border-slate-800 text-slate-500': quizSelectedOption !== null && option !== currentQuizQuestion.correct
+                          }"
+                          :disabled="quizSelectedOption !== null">
+                    <span x-text="option"></span>
+                    <template x-if="quizSelectedOption !== null && option === currentQuizQuestion.correct">
+                      <i data-lucide="check-circle" class="w-5 h-5 text-emerald-400"></i>
+                    </template>
+                  </button>
+                </template>
+              </div>
+            </template>
+
+            <!-- Escribir la respuesta -->
+            <template x-if="currentQuizQuestion.type === 'write'">
+              <div class="space-y-3">
+                <input type="text" x-model="quizInputAnswer" placeholder="Escribe tu respuesta aquí..." 
+                       class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-slate-100 focus:outline-none focus:border-indigo-500"
+                       :disabled="quizAnswered">
+                
+                <template x-if="!quizAnswered">
+                  <button @click="submitWrittenAnswer()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 font-bold rounded-2xl text-white shadow-lg">
+                    Comprobar Respuesta
+                  </button>
+                </template>
+
+                <template x-if="quizAnswered">
+                  <div class="space-y-3 text-center p-4 rounded-2xl border" :class="quizIsCorrect ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-200' : 'bg-rose-950/40 border-rose-500/50 text-rose-200'">
+                    <p class="font-bold text-sm" x-text="quizIsCorrect ? '¡Correcto! Muy bien.' : 'Incorrecto. La respuesta era: ' + currentQuizQuestion.correct"></p>
+                    <button @click="nextQuizQuestion()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 font-semibold rounded-xl text-slate-100">
+                      Siguiente Pregunta
+                    </button>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+          </div>
+        </template>
+      </div>
+
     </main>
 
     <!-- Modal Editar / Crear Mazo -->
@@ -222,8 +350,13 @@
   </div>
 
   <script>
+    const SECRET_CODE = "1234"; // <--- CAMBIA AQUÍ TU CÓDIGO SECRETO SI DESEAS OTRO
+
     function appData() {
       return {
+        isAuthorized: false,
+        inputCode: '',
+        authError: false,
         currentTab: 'home',
         searchQuery: '',
         showDeckModal: false,
@@ -232,30 +365,75 @@
         activeDeck: null,
         currentCardIndex: 0,
         isFlipped: false,
-        decks: [
-          {
-            id: 1,
-            title: 'Inglés - Básico',
-            cards: [
-              { term: 'Apple', definition: 'Manzana' },
-              { term: 'Book', definition: 'Libro' },
-              { term: 'Network', definition: 'Red / Infraestructura' },
-              { term: 'Software', definition: 'Programa / Aplicación' }
-            ]
-          }
-        ],
+        
+        quizQuestions: [],
+        quizIndex: 0,
+        currentQuizQuestion: null,
+        quizFinished: false,
+        quizSelectedOption: null,
+        quizInputAnswer: '',
+        quizAnswered: false,
+        quizIsCorrect: false,
+
+        decks: [],
+
         initApp() {
-          const savedDecks = localStorage.getItem('android_flashcards_decks');
-          if (savedDecks) {
-            try { this.decks = JSON.parse(savedDecks); } catch(e) {}
+          if (localStorage.getItem('android_flashcards_auth') === 'true') {
+            this.isAuthorized = true;
           }
+
+          window.addEventListener('firebase-loaded', () => {
+            const { db, collection, onSnapshot } = window.firebaseDB;
+            onSnapshot(collection(db, 'decks'), (snapshot) => {
+              let cloudDecks = [];
+              snapshot.forEach((docSnap) => {
+                cloudDecks.push({ id: docSnap.id, ...docSnap.data() });
+              });
+              if (cloudDecks.length > 0) {
+                this.decks = cloudDecks;
+              } else {
+                this.saveDeckToFirebase({
+                  id: 1,
+                  title: 'Inglés - Básico',
+                  cards: [
+                    { term: 'Apple', definition: 'Manzana' },
+                    { term: 'Book', definition: 'Libro' },
+                    { term: 'Network', definition: 'Red / Infraestructura' },
+                    { term: 'Software', definition: 'Programa / Aplicación' }
+                  ]
+                });
+              }
+              this.refreshIcons();
+            });
+          });
+
           this.refreshIcons();
+        },
+        checkAccess() {
+          if (this.inputCode.trim() === SECRET_CODE) {
+            this.isAuthorized = true;
+            localStorage.setItem('android_flashcards_auth', 'true');
+            this.authError = false;
+            this.refreshIcons();
+          } else {
+            this.authError = true;
+            this.inputCode = '';
+          }
         },
         refreshIcons() {
           setTimeout(() => { if (window.lucide) lucide.createIcons(); }, 150);
         },
-        saveToLocalStorage() {
-          localStorage.setItem('android_flashcards_decks', JSON.stringify(this.decks));
+        async saveDeckToFirebase(deck) {
+          if (window.firebaseDB) {
+            const { db, doc, setDoc } = window.firebaseDB;
+            await setDoc(doc(db, 'decks', String(deck.id)), deck);
+          }
+        },
+        async deleteDeckFromFirebase(id) {
+          if (window.firebaseDB) {
+            const { db, doc, deleteDoc } = window.firebaseDB;
+            await deleteDoc(doc(db, 'decks', String(id)));
+          }
         },
         get filteredDecks() {
           if (!this.searchQuery) return this.decks;
@@ -280,22 +458,18 @@
         removeCardFromForm(index) {
           this.deckForm.cards.splice(index, 1);
         },
-        saveDeck() {
+        async saveDeck() {
           if (!this.deckForm.title.trim()) return alert('Ingresa un título para el mazo');
-          if (this.editingDeckId) {
-            const idx = this.decks.findIndex(d => d.id === this.editingDeckId);
-            if (idx !== -1) this.decks[idx] = { ...this.deckForm, id: this.editingDeckId };
-          } else {
-            this.decks.push({ id: Date.now(), ...this.deckForm });
-          }
-          this.saveToLocalStorage();
+          const deckId = this.editingDeckId ? this.editingDeckId : Date.now();
+          const deckToSave = { ...this.deckForm, id: deckId };
+          
+          await this.saveDeckToFirebase(deckToSave);
           this.showDeckModal = false;
           this.refreshIcons();
         },
-        deleteDeck(id) {
-          if (confirm('¿Deseas eliminar este mazo?')) {
-            this.decks = this.decks.filter(d => d.id !== id);
-            this.saveToLocalStorage();
+        async deleteDeck(id) {
+          if (confirm('¿Deseas eliminar este mazo para todos los usuarios?')) {
+            await this.deleteDeckFromFirebase(id);
           }
         },
         startStudy(deck) {
@@ -333,6 +507,72 @@
             this.isFlipped = false;
             setTimeout(() => { this.currentCardIndex--; }, 150);
           }
+        },
+        startQuiz() {
+          if (!this.activeDeck || this.activeDeck.cards.length === 0) return;
+          this.currentTab = 'quiz';
+          this.quizFinished = false;
+          this.quizIndex = 0;
+
+          let cards = [...this.activeDeck.cards];
+          cards.sort(() => Math.random() - 0.5);
+
+          this.quizQuestions = cards.map((card, idx) => {
+            const isChoice = idx % 2 === 0 || cards.length < 3;
+            if (isChoice) {
+              let others = this.activeDeck.cards.filter(c => c.definition !== card.definition).map(c => c.definition);
+              others.sort(() => Math.random() - 0.5);
+              let options = others.slice(0, 3);
+              options.push(card.definition);
+              options.sort(() => Math.random() - 0.5);
+
+              return {
+                type: 'choice',
+                prompt: card.term,
+                correct: card.definition,
+                options: options
+              };
+            } else {
+              return {
+                type: 'write',
+                prompt: card.term,
+                correct: card.definition
+              };
+            }
+          });
+
+          this.loadQuizQuestion();
+          this.refreshIcons();
+        },
+        loadQuizQuestion() {
+          if (this.quizIndex < this.quizQuestions.length) {
+            this.currentQuizQuestion = this.quizQuestions[this.quizIndex];
+            this.quizSelectedOption = null;
+            this.quizInputAnswer = '';
+            this.quizAnswered = false;
+            this.quizIsCorrect = false;
+          } else {
+            this.quizFinished = true;
+          }
+          this.refreshIcons();
+        },
+        answerChoice(option) {
+          this.quizSelectedOption = option;
+          setTimeout(() => {
+            this.quizIndex++;
+            this.loadQuizQuestion();
+          }, 1200);
+        },
+        submitWrittenAnswer() {
+          if (!this.quizInputAnswer.trim()) return;
+          this.quizAnswered = true;
+          const userAns = this.quizInputAnswer.trim().toLowerCase();
+          const correctAns = this.currentQuizQuestion.correct.trim().toLowerCase();
+          this.quizIsCorrect = userAns === correctAns;
+        },
+        nextQuizQuestion() {
+          this.quizIndex++;
+          this.loadQuizQuestion();
         }
       }
     }
